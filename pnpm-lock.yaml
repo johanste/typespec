@@ -658,6 +658,33 @@ importers:
         specifier: ^4.0.15
         version: 4.0.17(@types/node@25.0.9)(@vitest/ui@4.0.17)(happy-dom@20.3.4)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
 
+  packages/http-api-docs:
+    devDependencies:
+      '@typespec/compiler':
+        specifier: workspace:^
+        version: link:../compiler
+      '@typespec/http':
+        specifier: workspace:^
+        version: link:../http
+      '@typespec/rest':
+        specifier: workspace:^
+        version: link:../rest
+      '@vitest/coverage-v8':
+        specifier: ^4.0.15
+        version: 4.0.17(vitest@4.0.17)
+      '@vitest/ui':
+        specifier: ^4.0.15
+        version: 4.0.17(vitest@4.0.17)
+      rimraf:
+        specifier: ~6.1.2
+        version: 6.1.2
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.15
+        version: 4.0.17(@types/node@25.0.9)(@vitest/ui@4.0.17)(happy-dom@20.3.4)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
+
   packages/http-canonicalization:
     dependencies:
       '@typespec/compiler':
@@ -9099,12 +9126,12 @@ packages:
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
     engines: {node: '>=12'}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-directory@4.0.1:
     resolution: {integrity: sha512-wHTUcDUoZ1H5/0iVqEudYW4/kAlN5cZ3j/bXn0Dpbizl9iaUVeWSHqiOjsgk6OW2bkLclbBjzewBz6weQ1zA2Q==}
@@ -19530,7 +19557,7 @@ snapshots:
       algoliasearch: 4.25.3
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
       diff: 5.2.2
-      ink: 3.2.0(@types/react@19.2.9)(react@19.2.3)
+      ink: 3.2.0(@types/react@19.2.9)(react@17.0.2)
       ink-text-input: 4.0.3(ink@3.2.0(@types/react@19.2.9)(react@17.0.2))(react@17.0.2)
       react: 17.0.2
       semver: 7.7.3
@@ -19680,7 +19707,7 @@ snapshots:
       '@yarnpkg/plugin-git': 3.1.4(@yarnpkg/core@4.5.0(typanion@3.14.0))(typanion@3.14.0)
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
       es-toolkit: 1.44.0
-      ink: 3.2.0(@types/react@19.2.9)(react@17.0.2)
+      ink: 3.2.0(@types/react@19.2.9)(react@19.2.3)
       react: 17.0.2
       semver: 7.7.3
       tslib: 2.8.1
