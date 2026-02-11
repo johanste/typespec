@@ -1,7 +1,6 @@
 import {
   type EmitContext,
   type Model,
-  type ModelProperty,
   type Scalar,
   type Type,
   type Union,
