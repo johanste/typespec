@@ -279,6 +279,12 @@ function getTypeName(type: Type): string {
       return formatUnionName(type);
     case "Intrinsic":
       return type.name;
+    case "String":
+      return `"${type.value}"`;
+    case "Number":
+      return type.value.toString();
+    case "Boolean":
+      return type.value.toString();
     default:
       return "unknown";
   }
@@ -322,6 +328,12 @@ export function generateExampleJson(type: Type, depth: number): unknown {
         return null;
       }
       return {};
+    case "String":
+      return type.value;
+    case "Number":
+      return type.value;
+    case "Boolean":
+      return type.value;
     default:
       return {};
   }

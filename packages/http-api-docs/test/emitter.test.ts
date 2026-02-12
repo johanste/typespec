@@ -261,4 +261,70 @@ describe("http-api-docs emitter", () => {
     expect(markdown).toContain("The name of the pet");
     expect(markdown).toContain("Age in years");
   });
+
+  it("emits example for string literal types", async () => {
+    const markdown = await emitMarkdownFor(`
+      model Config {
+        kind: "standard";
+        mode: "active" | "inactive";
+      }
+
+      @service(#{title: "My API"})
+      @route("/config")
+      namespace MyAPI {
+        @get op read(): Config;
+      }
+    `);
+
+    expect(markdown).toContain('"kind": "standard"');
+    expect(markdown).toContain('"mode": "active"');
+  });
+
+  it("emits type name for string literal properties", async () => {
+    const markdown = await emitMarkdownFor(`
+      model Config {
+        kind: "standard";
+      }
+
+      @service(#{title: "My API"})
+      @route("/config")
+      namespace MyAPI {
+        @post op create(@body config: Config): Config;
+      }
+    `);
+
+    expect(markdown).toContain('`"standard"`');
+  });
+
+  it("emits example for numeric literal types", async () => {
+    const markdown = await emitMarkdownFor(`
+      model TestResult {
+        code: 200;
+      }
+
+      @service(#{title: "My API"})
+      @route("/test")
+      namespace MyAPI {
+        @get op read(): TestResult;
+      }
+    `);
+
+    expect(markdown).toContain('"code": 200');
+  });
+
+  it("emits example for boolean literal types", async () => {
+    const markdown = await emitMarkdownFor(`
+      model TestResult {
+        success: true;
+      }
+
+      @service(#{title: "My API"})
+      @route("/test")
+      namespace MyAPI {
+        @get op read(): TestResult;
+      }
+    `);
+
+    expect(markdown).toContain('"success": true');
+  });
 });
