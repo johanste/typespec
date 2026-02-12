@@ -1,7 +1,6 @@
 import {
   emitFile,
   type Enum,
-  type EnumMember,
   type Model,
   type ModelProperty,
   type Program,
@@ -140,7 +139,7 @@ function isIntrinsicModel(model: Model): boolean {
  * Check if a type belongs to a standard library namespace (TypeSpec, TypeSpec.Http, etc.)
  */
 function isLibraryType(type: Model | Enum | Union): boolean {
-  const ns = type.kind === "Model" ? type.namespace : type.namespace;
+  const ns = type.namespace;
   if (!ns) return false;
   const nsName = getNamespaceName(ns);
   return nsName === "TypeSpec" || nsName.startsWith("TypeSpec.");
