@@ -1,12 +1,6 @@
+import type { Namespace } from "@typespec/compiler";
 import {
   emitFile,
-  type Enum,
-  type Model,
-  type ModelProperty,
-  type Program,
-  type Scalar,
-  type Type,
-  type Union,
   getDoc,
   getMaxItems,
   getMaxLength,
@@ -19,9 +13,15 @@ import {
   getPattern,
   isArrayModelType,
   resolvePath,
+  type Enum,
+  type Model,
+  type ModelProperty,
+  type Program,
+  type Scalar,
+  type Type,
+  type Union,
 } from "@typespec/compiler";
 import { getAllHttpServices, listHttpOperationsIn } from "@typespec/http";
-import type { Namespace } from "@typespec/compiler";
 import type { PydanticEmitterOptions } from "./lib.js";
 
 /** Usage category for a model */
@@ -145,7 +145,10 @@ function isLibraryType(type: Model | Enum | Union): boolean {
   return nsName === "TypeSpec" || nsName.startsWith("TypeSpec.");
 }
 
-function getNamespaceName(ns: { name: string; namespace?: { name: string; namespace?: any } }): string {
+function getNamespaceName(ns: {
+  name: string;
+  namespace?: { name: string; namespace?: any };
+}): string {
   if (ns.namespace && ns.namespace.name) {
     const parent = getNamespaceName(ns.namespace);
     return parent ? `${parent}.${ns.name}` : ns.name;
@@ -236,16 +239,12 @@ function getImportsForTypes(types: Set<string>): string[] {
  * Returns [typeAnnotation, referencedModels] where referencedModels are model
  * names that need to be imported.
  */
-export function typeToAnnotation(
-  program: Program,
-  type: Type,
-  refModels: Set<string>,
-): string {
+export function typeToAnnotation(program: Program, type: Type, refModels: Set<string>): string {
   switch (type.kind) {
     case "Scalar":
       return scalarToPythonType(type);
     case "Model": {
-      if (isArrayModelType(program, type)) {
+      if (isArrayModelType(type)) {
         // Array<T> → List[T]
         const elementType = type.indexer!.value;
         const inner = typeToAnnotation(program, elementType, refModels);
@@ -362,9 +361,8 @@ function getDefaultValue(prop: ModelProperty): string | undefined {
 export function emitModel(program: Program, model: Model): string {
   const lines: string[] = [];
   const doc = getDoc(program, model);
-  const baseClass = model.baseModel && !isIntrinsicModel(model.baseModel)
-    ? model.baseModel.name
-    : "BaseModel";
+  const baseClass =
+    model.baseModel && !isIntrinsicModel(model.baseModel) ? model.baseModel.name : "BaseModel";
 
   lines.push(`class ${model.name}(${baseClass}):`);
   if (doc) {
@@ -423,12 +421,8 @@ export function emitEnum(program: Program, enumType: Enum): string {
   const members = [...enumType.members.values()];
 
   // Determine if all values are strings or ints
-  const allString = members.every(
-    (m) => m.value === undefined || typeof m.value === "string",
-  );
-  const allInt = members.every(
-    (m) => m.value !== undefined && typeof m.value === "number",
-  );
+  const allString = members.every((m) => m.value === undefined || typeof m.value === "string");
+  const allInt = members.every((m) => m.value !== undefined && typeof m.value === "number");
   const baseClass = allInt ? "IntEnum" : allString ? "StrEnum" : "Enum";
 
   lines.push(`class ${enumType.name}(${baseClass}):`);
@@ -461,8 +455,7 @@ export function emitUnion(program: Program, union: Union): string {
     variants.push(typeToAnnotation(program, v.type, refModels));
   }
 
-  const unionType =
-    variants.length > 0 ? `Union[${variants.join(", ")}]` : "Any";
+  const unionType = variants.length > 0 ? `Union[${variants.join(", ")}]` : "Any";
 
   lines.push(`${union.name} = ${unionType}`);
   if (doc) {
@@ -475,9 +468,11 @@ export function emitUnion(program: Program, union: Union): string {
 /**
  * Collect all models, enums, and named unions from a program.
  */
-export function collectAllTypes(
-  program: Program,
-): { models: Model[]; enums: Enum[]; unions: Union[] } {
+export function collectAllTypes(program: Program): {
+  models: Model[];
+  enums: Enum[];
+  unions: Union[];
+} {
   const models: Model[] = [];
   const enums: Enum[] = [];
   const unions: Union[] = [];
@@ -527,21 +522,15 @@ export function collectAllTypes(
 /**
  * Generate a Python module with the given types.
  */
-export function generateModule(
-  program: Program,
-  types: (Model | Enum | Union)[],
-): string {
+export function generateModule(program: Program, types: (Model | Enum | Union)[]): string {
   const sections: string[] = [];
-  const needsField =
-    types.some(
-      (t) =>
-        t.kind === "Model" &&
-        [...t.properties.values()].some(
-          (p) =>
-            getFieldConstraints(program, p).length > 0 ||
-            getDoc(program, p) !== undefined,
-        ),
-    );
+  const needsField = types.some(
+    (t) =>
+      t.kind === "Model" &&
+      [...t.properties.values()].some(
+        (p) => getFieldConstraints(program, p).length > 0 || getDoc(program, p) !== undefined,
+      ),
+  );
   const needsOptional = types.some(
     (t) => t.kind === "Model" && [...t.properties.values()].some((p) => p.optional),
   );
@@ -557,16 +546,12 @@ export function generateModule(
   const needsList = types.some(
     (t) =>
       t.kind === "Model" &&
-      [...t.properties.values()].some(
-        (p) => p.type.kind === "Model" && isArrayModelType(program, p.type),
-      ),
+      [...t.properties.values()].some((p) => p.type.kind === "Model" && isArrayModelType(p.type)),
   );
   const needsDict = types.some(
     (t) =>
       t.kind === "Model" &&
-      [...t.properties.values()].some(
-        (p) => p.type.kind === "Model" && p.type.name === "Record",
-      ),
+      [...t.properties.values()].some((p) => p.type.kind === "Model" && p.type.name === "Record"),
   );
   const needsAny = types.some(
     (t) =>
@@ -611,7 +596,9 @@ export function generateModule(
       if (t.kind === "Enum") {
         const members = [...t.members.values()];
         const allInt = members.every((m) => m.value !== undefined && typeof m.value === "number");
-        const allString = members.every((m) => m.value === undefined || typeof m.value === "string");
+        const allString = members.every(
+          (m) => m.value === undefined || typeof m.value === "string",
+        );
         if (allInt) enumBases.add("IntEnum");
         else if (allString) enumBases.add("StrEnum");
         else enumBases.add("Enum");

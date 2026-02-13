@@ -13,7 +13,11 @@
   "bugs": {
     "url": "https://github.com/microsoft/typespec/issues"
   },
-  "keywords": ["TypeSpec", "pydantic", "python"],
+  "keywords": [
+    "TypeSpec",
+    "pydantic",
+    "python"
+  ],
   "type": "module",
   "main": "dist/src/index.js",
   "exports": {
@@ -28,7 +32,9 @@
     }
   },
   "tspMain": "lib/main.tsp",
-  "engines": { "node": ">=20.0.0" },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "clean": "rimraf ./dist ./temp",
     "build": "tsc -p tsconfig.build.json",
@@ -39,8 +45,15 @@
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix"
   },
-  "files": ["lib/*.tsp", "dist/**", "!dist/test/**"],
-  "peerDependencies": { "@typespec/compiler": "workspace:^", "@typespec/http": "workspace:^" },
+  "files": [
+    "lib/*.tsp",
+    "dist/**",
+    "!dist/test/**"
+  ],
+  "peerDependencies": {
+    "@typespec/compiler": "workspace:^",
+    "@typespec/http": "workspace:^"
+  },
   "devDependencies": {
     "@types/node": "~25.0.2",
     "@typespec/compiler": "workspace:^",
