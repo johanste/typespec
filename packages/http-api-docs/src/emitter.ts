@@ -23,7 +23,9 @@ import {
 
 import type { HttpApiDocsEmitterOptions } from "./lib.js";
 
-export async function emitHttpApiDocs(context: EmitContext<HttpApiDocsEmitterOptions>): Promise<void> {
+export async function emitHttpApiDocs(
+  context: EmitContext<HttpApiDocsEmitterOptions>,
+): Promise<void> {
   const program = context.program;
   const [httpServices, diagnostics] = getAllHttpServices(program);
 
@@ -39,8 +41,7 @@ export async function emitHttpApiDocs(context: EmitContext<HttpApiDocsEmitterOpt
 
   for (const httpService of httpServices) {
     const markdown = generateServiceDoc(program, httpService);
-    const outputFileName =
-      context.options["output-file"] ?? `{service-name}.md`;
+    const outputFileName = context.options["output-file"] ?? `{service-name}.md`;
 
     const resolvedFileName = interpolatePath(outputFileName, {
       "service-name": getNamespaceFullName(httpService.namespace),
@@ -57,7 +58,10 @@ export async function emitHttpApiDocs(context: EmitContext<HttpApiDocsEmitterOpt
   }
 }
 
-function generateServiceDoc(program: import("@typespec/compiler").Program, service: HttpService): string {
+function generateServiceDoc(
+  program: import("@typespec/compiler").Program,
+  service: HttpService,
+): string {
   const lines: string[] = [];
   const serviceInfo = getService(program, service.namespace);
   const serviceName = serviceInfo?.title ?? service.namespace.name ?? "API";
@@ -82,8 +86,10 @@ function generateServiceDoc(program: import("@typespec/compiler").Program, servi
     lines.push("");
   }
 
-  // Group operations by path
+  // Collect all operations and identify common error responses
   const operationsByTag = groupOperations(program, service.operations);
+  const allOperations = [...operationsByTag.values()].flat();
+  const commonErrors = findCommonErrors(program, allOperations);
 
   for (const [group, operations] of operationsByTag) {
     if (group) {
@@ -92,7 +98,19 @@ function generateServiceDoc(program: import("@typespec/compiler").Program, servi
     }
 
     for (const httpOp of operations) {
-      lines.push(...generateOperationDoc(program, httpOp));
+      lines.push(...generateOperationDoc(program, httpOp, commonErrors));
+    }
+  }
+
+  // Emit common errors section
+  if (commonErrors.size > 0) {
+    lines.push("## Common Errors");
+    lines.push("");
+    lines.push("The following error responses apply to all operations in this API.");
+    lines.push("");
+
+    for (const [, errorDoc] of commonErrors) {
+      lines.push(...errorDoc.lines);
     }
   }
 
@@ -117,7 +135,89 @@ function groupOperations(
   return groups;
 }
 
-function generateOperationDoc(program: import("@typespec/compiler").Program, httpOp: HttpOperation): string[] {
+/** Fingerprint for an error response based on status code and body structure. */
+function getResponseFingerprint(
+  program: import("@typespec/compiler").Program,
+  response: HttpOperationResponse,
+): string {
+  const statusCode = formatStatusCode(response.statusCodes);
+  const bodyParts: string[] = [];
+  for (const content of response.responses) {
+    if (content.body && content.body.bodyKind === "single") {
+      bodyParts.push(getTypeName(content.body.type));
+      if (content.body.type.kind === "Model") {
+        for (const [name, prop] of content.body.type.properties) {
+          bodyParts.push(`${name}:${getTypeName(prop.type)}`);
+        }
+      }
+    }
+  }
+  return `${statusCode}|${bodyParts.join(",")}`;
+}
+
+interface CommonErrorEntry {
+  fingerprint: string;
+  lines: string[];
+}
+
+/** Find error responses that appear in the majority of operations. */
+function findCommonErrors(
+  program: import("@typespec/compiler").Program,
+  operations: HttpOperation[],
+): Map<string, CommonErrorEntry> {
+  if (operations.length <= 1) {
+    return new Map();
+  }
+
+  // Count how many operations each error fingerprint appears in
+  const errorCounts = new Map<string, number>();
+  const errorResponses = new Map<string, HttpOperationResponse>();
+
+  for (const op of operations) {
+    const seen = new Set<string>();
+    for (const response of op.responses) {
+      if (!isErrorResponse(response)) continue;
+      const fp = getResponseFingerprint(program, response);
+      if (!seen.has(fp)) {
+        seen.add(fp);
+        errorCounts.set(fp, (errorCounts.get(fp) ?? 0) + 1);
+        if (!errorResponses.has(fp)) {
+          errorResponses.set(fp, response);
+        }
+      }
+    }
+  }
+
+  // Consider an error "common" if it appears in more than half the operations
+  const threshold = Math.ceil(operations.length / 2);
+  const commonErrors = new Map<string, CommonErrorEntry>();
+
+  for (const [fp, count] of errorCounts) {
+    if (count >= threshold) {
+      const response = errorResponses.get(fp)!;
+      commonErrors.set(fp, {
+        fingerprint: fp,
+        lines: generateResponseDoc(program, response),
+      });
+    }
+  }
+
+  return commonErrors;
+}
+
+/** Check if a response is an error response (4xx, 5xx, or *). */
+function isErrorResponse(response: HttpOperationResponse): boolean {
+  const sc = response.statusCodes;
+  if (sc === "*") return true;
+  if (typeof sc === "number") return sc >= 400;
+  return sc.start >= 400;
+}
+
+function generateOperationDoc(
+  program: import("@typespec/compiler").Program,
+  httpOp: HttpOperation,
+  commonErrors: Map<string, CommonErrorEntry>,
+): string[] {
   const lines: string[] = [];
   const verb = httpOp.verb.toUpperCase();
   const path = httpOp.path;
@@ -147,7 +247,10 @@ function generateOperationDoc(program: import("@typespec/compiler").Program, htt
       const location = param.type;
       const typeName = getTypeName(param.param.type);
       const required = !param.param.optional ? "Yes" : "No";
-      lines.push(`| ${param.param.name} | ${location} | \`${typeName}\` | ${required} | ${paramDoc} |`);
+      const description = buildDescription(paramDoc, param.param.type);
+      lines.push(
+        `| ${escapeForTable(param.param.name)} | ${location} | \`${escapeForTable(typeName)}\` | ${required} | ${escapeForTable(description)} |`,
+      );
     }
     lines.push("");
   }
@@ -179,7 +282,10 @@ function generateOperationDoc(program: import("@typespec/compiler").Program, htt
         const propDoc = getDoc(program, prop) ?? "";
         const typeName = getTypeName(prop.type);
         const required = !prop.optional ? "Yes" : "No";
-        lines.push(`| ${name} | \`${typeName}\` | ${required} | ${propDoc} |`);
+        const description = buildDescription(propDoc, prop.type);
+        lines.push(
+          `| ${escapeForTable(name)} | \`${escapeForTable(typeName)}\` | ${required} | ${escapeForTable(description)} |`,
+        );
       }
       lines.push("");
     }
@@ -187,11 +293,32 @@ function generateOperationDoc(program: import("@typespec/compiler").Program, htt
 
   // Responses
   if (httpOp.responses.length > 0) {
-    lines.push("#### Responses");
-    lines.push("");
+    const uniqueResponses: HttpOperationResponse[] = [];
+    const skippedCommon: string[] = [];
 
     for (const response of httpOp.responses) {
-      lines.push(...generateResponseDoc(program, response));
+      const fp = getResponseFingerprint(program, response);
+      if (isErrorResponse(response) && commonErrors.has(fp)) {
+        skippedCommon.push(formatStatusCode(response.statusCodes));
+      } else {
+        uniqueResponses.push(response);
+      }
+    }
+
+    if (uniqueResponses.length > 0 || skippedCommon.length > 0) {
+      lines.push("#### Responses");
+      lines.push("");
+
+      for (const response of uniqueResponses) {
+        lines.push(...generateResponseDoc(program, response));
+      }
+
+      if (skippedCommon.length > 0) {
+        lines.push(
+          `This operation also returns [common errors](#common-errors) (${skippedCommon.join(", ")}).`,
+        );
+        lines.push("");
+      }
     }
   }
 
@@ -207,8 +334,7 @@ function generateResponseDoc(
 ): string[] {
   const lines: string[] = [];
   const statusCode = formatStatusCode(response.statusCodes);
-  const description =
-    response.description ?? getStatusCodeDescription(statusCode) ?? "";
+  const description = response.description ?? getStatusCodeDescription(statusCode) ?? "";
 
   lines.push(`##### ${statusCode}${description ? ` ${description}` : ""}`);
   lines.push("");
@@ -237,7 +363,10 @@ function generateResponseDoc(
           const propDoc = getDoc(program, prop) ?? "";
           const typeName = getTypeName(prop.type);
           const required = !prop.optional ? "Yes" : "No";
-          lines.push(`| ${name} | \`${typeName}\` | ${required} | ${propDoc} |`);
+          const description = buildDescription(propDoc, prop.type);
+          lines.push(
+            `| ${escapeForTable(name)} | \`${escapeForTable(typeName)}\` | ${required} | ${escapeForTable(description)} |`,
+          );
         }
         lines.push("");
       }
@@ -264,6 +393,38 @@ function isJsonContentType(contentTypes: readonly string[]): boolean {
   );
 }
 
+/** Escape content for use inside a markdown table cell.
+ *  - Replaces newlines with `<br>` to keep the row on one line
+ *  - Escapes pipe characters so they don't break column boundaries
+ */
+function escapeForTable(value: string): string {
+  return value.replace(/\r?\n/g, "<br>").replace(/\|/g, "\\|");
+}
+
+/** Return an extra description for types that lose information when shown as
+ *  a plain JSON type name (e.g. Record types shown as `object`).
+ */
+function getTypeDescription(type: Type): string {
+  if (type.kind === "Model" && type.indexer && type.indexer.key.name === "string") {
+    const valueType = getTypeName(type.indexer.value);
+    return `A map of string keys to ${valueType} values.`;
+  }
+  if (type.kind === "Union") {
+    for (const [, variant] of type.variants) {
+      const desc = getTypeDescription(variant.type);
+      if (desc) return desc;
+    }
+  }
+  return "";
+}
+
+/** Combine the doc string with any auto-generated type description. */
+function buildDescription(doc: string, type: Type): string {
+  const typeDesc = getTypeDescription(type);
+  if (!typeDesc) return doc;
+  return doc ? `${typeDesc} ${doc}` : typeDesc;
+}
+
 function getTypeName(type: Type): string {
   switch (type.kind) {
     case "Scalar":
@@ -272,9 +433,9 @@ function getTypeName(type: Type): string {
       if (type.name === "Array" && type.indexer) {
         return `${getTypeName(type.indexer.value)}[]`;
       }
-      return type.name || "object";
+      return "object";
     case "Enum":
-      return type.name;
+      return formatEnumName(type);
     case "Union":
       return formatUnionName(type);
     case "Intrinsic":
@@ -285,13 +446,42 @@ function getTypeName(type: Type): string {
       return type.value.toString();
     case "Boolean":
       return type.value.toString();
+    case "EnumMember":
+      if (type.value !== undefined) {
+        return typeof type.value === "string" ? `"${type.value}"` : type.value.toString();
+      }
+      return `"${type.name}"`;
+    case "StringTemplate":
+      return type.stringValue !== undefined ? `"${type.stringValue}"` : "string";
+    case "Tuple":
+      return "[]";
     default:
       return "unknown";
   }
 }
 
+/** Max number of enum/union variants to inline before falling back to the name. */
+const MAX_INLINE_VARIANTS = 10;
+
+function formatEnumName(enumType: import("@typespec/compiler").Enum): string {
+  if (enumType.members.size > MAX_INLINE_VARIANTS) {
+    return enumType.name;
+  }
+  const members: string[] = [];
+  for (const [, member] of enumType.members) {
+    if (member.value !== undefined) {
+      members.push(
+        typeof member.value === "string" ? `"${member.value}"` : member.value.toString(),
+      );
+    } else {
+      members.push(`"${member.name}"`);
+    }
+  }
+  return members.join(" | ");
+}
+
 function formatUnionName(union: Union): string {
-  if (union.name) {
+  if (union.variants.size > MAX_INLINE_VARIANTS && union.name) {
     return union.name;
   }
   const variants: string[] = [];
@@ -334,6 +524,17 @@ export function generateExampleJson(type: Type, depth: number): unknown {
       return type.value;
     case "Boolean":
       return type.value;
+    case "EnumMember":
+      return type.value ?? type.name;
+    case "StringTemplate":
+      return type.stringValue ?? "string";
+    case "Tuple": {
+      const items: unknown[] = [];
+      for (const value of type.values) {
+        items.push(generateExampleJson(value, depth + 1));
+      }
+      return items;
+    }
     default:
       return {};
   }
@@ -426,10 +627,12 @@ function generateEnumExample(enumType: import("@typespec/compiler").Enum): unkno
 }
 
 function generateUnionExample(union: Union, depth: number): unknown {
-  // Return example for the first non-null variant
+  // Return example for the first non-null variant.
+  // Don't increment depth here — resolving a union variant is type
+  // unwrapping, not structural nesting.
   for (const [, variant] of union.variants) {
     if (variant.type.kind !== "Intrinsic" || variant.type.name !== "null") {
-      return generateExampleJson(variant.type, depth + 1);
+      return generateExampleJson(variant.type, depth);
     }
   }
   return null;
