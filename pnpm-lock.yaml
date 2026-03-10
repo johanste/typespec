@@ -1856,6 +1856,9 @@ importers:
       '@typespec/http':
         specifier: workspace:^
         version: link:../http
+      '@typespec/http-api-docs':
+        specifier: workspace:^
+        version: link:../http-api-docs
       '@typespec/http-server-csharp':
         specifier: workspace:^
         version: link:../http-server-csharp
@@ -19557,7 +19560,7 @@ snapshots:
       algoliasearch: 4.25.3
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
       diff: 5.2.2
-      ink: 3.2.0(@types/react@19.2.9)(react@17.0.2)
+      ink: 3.2.0(@types/react@19.2.9)(react@19.2.3)
       ink-text-input: 4.0.3(ink@3.2.0(@types/react@19.2.9)(react@17.0.2))(react@17.0.2)
       react: 17.0.2
       semver: 7.7.3
@@ -19707,7 +19710,7 @@ snapshots:
       '@yarnpkg/plugin-git': 3.1.4(@yarnpkg/core@4.5.0(typanion@3.14.0))(typanion@3.14.0)
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
       es-toolkit: 1.44.0
-      ink: 3.2.0(@types/react@19.2.9)(react@19.2.3)
+      ink: 3.2.0(@types/react@19.2.9)(react@17.0.2)
       react: 17.0.2
       semver: 7.7.3
       tslib: 2.8.1

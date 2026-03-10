@@ -394,11 +394,12 @@ function isJsonContentType(contentTypes: readonly string[]): boolean {
 }
 
 /** Escape content for use inside a markdown table cell.
+ *  - Escapes backslash characters first to avoid double-escaping
  *  - Replaces newlines with `<br>` to keep the row on one line
  *  - Escapes pipe characters so they don't break column boundaries
  */
 function escapeForTable(value: string): string {
-  return value.replace(/\r?\n/g, "<br>").replace(/\|/g, "\\|");
+  return value.replace(/\\/g, "\\\\").replace(/\r?\n/g, "<br>").replace(/\|/g, "\\|");
 }
 
 /** Return an extra description for types that lose information when shown as
