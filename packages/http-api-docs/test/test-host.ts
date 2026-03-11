@@ -5,11 +5,18 @@ export const ApiTester = createTester(resolvePath(import.meta.dirname, ".."), {
   libraries: ["@typespec/http", "@typespec/rest", "@typespec/http-api-docs"],
 });
 
-export const SimpleTester = ApiTester.import("@typespec/http", "@typespec/rest", "@typespec/http-api-docs")
+export const SimpleTester = ApiTester.import(
+  "@typespec/http",
+  "@typespec/rest",
+  "@typespec/http-api-docs",
+)
   .using("Http")
   .emit("@typespec/http-api-docs");
 
-export async function emitMarkdownFor(code: string, options: Record<string, unknown> = {}): Promise<string> {
+export async function emitMarkdownFor(
+  code: string,
+  options: Record<string, unknown> = {},
+): Promise<string> {
   const host = await SimpleTester.createInstance();
   const { outputs } = await host.compile(code, {
     compilerOptions: {
