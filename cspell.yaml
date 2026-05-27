@@ -222,6 +222,7 @@ words:
   - pyimport
   - pylint
   - pylintrc
+  - pydantic
   - pyodide
   - pyproject
   - pyright

@@ -67,6 +67,7 @@ versionPolicies:
     packages:
       - "@typespec/http-client-python"
       - "@typespec/http-client-java"
+      - "@typespec/pydantic"
 
 changelog: ["@chronus/github/changelog", { repo: "microsoft/typespec" }]
 

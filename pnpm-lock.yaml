@@ -2159,6 +2159,36 @@ importers:
         specifier: 'catalog:'
         version: 4.1.3(@types/node@25.5.2)(@vitest/coverage-v8@4.1.3)(@vitest/ui@4.1.3)(happy-dom@20.9.0)(jsdom@25.0.1)(vite@8.0.8(@types/node@25.5.2)(esbuild@0.28.0)(terser@5.46.1)(tsx@4.21.0)(yaml@2.8.3))
 
+  packages/pydantic:
+    devDependencies:
+      '@types/node':
+        specifier: ~25.0.2
+        version: 25.0.9
+      '@typespec/compiler':
+        specifier: workspace:^
+        version: link:../compiler
+      '@typespec/http':
+        specifier: workspace:^
+        version: link:../http
+      '@typespec/rest':
+        specifier: workspace:^
+        version: link:../rest
+      '@vitest/coverage-v8':
+        specifier: ^4.0.15
+        version: 4.0.17(vitest@4.0.17)
+      '@vitest/ui':
+        specifier: ^4.0.15
+        version: 4.0.17(vitest@4.0.17)
+      rimraf:
+        specifier: ~6.1.2
+        version: 6.1.2
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.15
+        version: 4.0.17(@types/node@25.0.9)(@vitest/ui@4.0.17)(happy-dom@20.3.4)(jsdom@25.0.1)(tsx@4.21.0)(yaml@2.8.2)
+
   packages/react-components:
     dependencies:
       '@fluentui/react-components':
